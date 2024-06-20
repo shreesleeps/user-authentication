@@ -1,14 +1,22 @@
-"use client";
-import React, { useState } from "react";
+'use client';
+
+import * as React from 'react';
+import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { useSession, SignUp } from '@clerk/nextjs';
-import { setActive } from '@clerk/nextjs';
+import { useSignIn } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
+
+export default function SignInForm() {
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const router = useRouter();
+
+  // Handle the submission of the sign-in form
 
 
-function CustomSignUp() {
+
   const [fullName, setfullName] = useState("");
-  const [email, setemail] = useState("");
-  const [password, setpassword] = useState("");
   const [confirmPassword, setconfirmPassword] = useState("");
   const [createHidePassword, setcreateHidePassword] = useState(true);
   const [confirmHidePassword, setconfirmHidePassword] = useState(true);
@@ -18,11 +26,11 @@ function CustomSignUp() {
   };
 
   const handleEmailChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setemail(event.target.value);
+    setEmail (event.target.value);
   };
 
   const handlePasswordChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setpassword(event.target.value);
+    setPassword(event.target.value);
   };
 
   const handleConfirmPasswordChange = (
@@ -31,30 +39,45 @@ function CustomSignUp() {
     setconfirmPassword(event.target.value);
   };
 
-  const handleSignUp = async () => {
-    if (password !== confirmPassword) {
-      alert("Passwords do not match!");
+
+
+
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!isLoaded) {
       return;
     }
 
+    // Start the sign-in process using the email and password provided
     try {
-      const signUp = await SignUp.create({
-        emailAddress: email,
+      const signInAttempt = await signIn.create({
+        identifier: email,
         password,
       });
 
-      if (signUp.status === 'pending') {
-        alert("Verification email sent. Please check your inbox.");
-      } else if (signUp.status === 'complete') {
-        alert("Signup successful!");
+      // If sign-in process is complete, set the created session as active
+      // and redirect the user
+      if (signInAttempt.status === 'complete') {
+        await setActive({ session: signInAttempt.createdSessionId });
+        router.push('/');
+      } else {
+        // If the status is not complete, check why. User may need to
+        // complete further steps.
+        console.error(JSON.stringify(signInAttempt, null, 2));
       }
-    } catch (error) {
-      console.error("Signup error:", error);
-      alert("Signup failed. Please try again.");
+    } catch (err: any) {
+      // See https://clerk.com/docs/custom-flows/error-handling
+      // for more info on error handling
+      console.error(JSON.stringify(err, null, 2));
     }
   };
 
+  // Display a form to capture the user's email and password
   return (
+    <>
     <div className="flex flex-col items-center">
       <div className="w-full max-w-[413px] ">
         <div className="w-full flex flex-col items-center ">
@@ -108,11 +131,16 @@ function CustomSignUp() {
             <div className="w-full flex flex-col gap-4">
               <div className="w-full text-[14px] font-semibold">Email</div>
               <input
-                type="text"
-                id="email"
-                name="email"
-                value={email}
-                onChange={handleEmailChange}
+              onChange={(e) => setEmail(e.target.value)}
+              id="email"
+              name="email"
+              type="email"
+              value={email}
+            
+                
+                
+                
+                // onChange={handleEmailChange}
                 placeholder="name@email.com"
                 className="w-full outline-[#3D53DB] border-[1px] border-[#F5F5F7] rounded-[10px] px-5 pt-[14.5px] pb-[14.5px] "
               />
@@ -121,11 +149,15 @@ function CustomSignUp() {
               <div className="w-full text-[14px] font-semibold">Password</div>
               <span className="relative flex flex-row items-center">
                 <input
-                  type={createHidePassword ? "password" : "text"}
-                  id="password"
-                  name="password"
-                  value={password}
-                  onChange={handlePasswordChange}
+                onChange={(e) => setPassword(e.target.value)}
+                id="password"
+                name="password"
+                type="password"
+                value={password}
+
+
+                //   type={createHidePassword ? "password" : "text"}
+                //   onChange={handlePasswordChange}
                   placeholder="Create Password"
                   className="w-full pr-12 outline-[#3D53DB] border-[1px] border-[#F5F5F7] rounded-[10px] px-5 pt-[14.5px] pb-[14.5px] "
                 />
@@ -211,7 +243,34 @@ function CustomSignUp() {
         </div>
       </div>
     </div>
-  );  
-}
 
-export default SignUp;
+
+
+      {/* <h1>Sign in</h1>
+      <form onSubmit={(e) => handleSubmit(e)}>
+        <div>
+          <label htmlFor="email">Enter email address</label>
+          <input
+            onChange={(e) => setEmail(e.target.value)}
+            id="email"
+            name="email"
+            type="email"
+            value={email}
+          />
+        </div>
+        <div>
+          <label htmlFor="password">Enter password</label>
+          <input
+            onChange={(e) => setPassword(e.target.value)}
+            id="password"
+            name="password"
+            type="password"
+            value={password}
+          />
+        </div>
+        <button type="submit">Sign in</button>
+      </form> */}
+
+    </>
+  );
+}
